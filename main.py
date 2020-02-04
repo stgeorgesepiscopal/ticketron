@@ -1,3 +1,4 @@
+import re
 from time import strftime
 
 from kivy.app import App
@@ -10,6 +11,7 @@ from kivy.uix.button import Button
 from kivy.uix.screenmanager import Screen, ScreenManager, SwapTransition
 
 import ezsheets
+
 
 LabelBase.register(name='Roboto',
                    fn_regular='Roboto-Thin.ttf',
@@ -64,9 +66,9 @@ class TicketronApp(App):
 
     def add_ticket(self, n):
         if n[3] == "NEW":
-            t = NewTicketItem(text=f"[b]{n[1]}[/b] [{n[2]}]")
+            t = NewTicketItem(text=f"[b]{n[1]}[/b][size=30sp]\n{n[2]}[/size]")
         else:
-            t = TicketItem(text=f"[b]{n[1]}[/b] [{n[2]}]")
+            t = TicketItem(text=f"[b]{n[1]}[/b][size=30sp]\n{n[2]}[/size]")
         self.ticket_widgets[n[0]] = t
         self.all_tickets.add(n)
         self.root.ids.tickets.add_widget(t)
@@ -86,7 +88,7 @@ class TicketronApp(App):
             pass
 
 
-    def get_tickets_from_sheet(self, n):
+    def get_tickets_from_sheet(self, *_):
         self.sheet.refresh()
         ws = self.sheet.sheets[0]
         print(ws.title, ws.columnCount, ws.rowCount)
@@ -98,15 +100,20 @@ class TicketronApp(App):
             if row[8] in [ "0 - New", "1 - Open" ]:
                 status = 'NEW' if row[8] == "0 - New" else 'OPEN'
                 id = row[9]
-                title = row[3]
+                title = re.sub(r"re: |fwd: |\[EXTERNAL\] ", "", row[3], flags=re.I)
                 fr = row[2]
                 new_tickets.add((id, title, fr, status))
+
+        for t in self.all_tickets.difference(new_tickets):
+            self.remove_ticket(t)
 
         for t in new_tickets.difference(self.all_tickets):
             self.add_ticket(t)
 
-        for t in self.all_tickets.difference(new_tickets):
-            self.remove_ticket(t)
+        num_tickets = len(self.all_tickets)
+        self.root.ids.ticket_header.text = f"[b]{num_tickets}[/b] Open Ticket{'s' if num_tickets != 1 else ''}"
+
+
 
 
 
@@ -123,9 +130,8 @@ class TicketronApp(App):
         self.sheet = ezsheets.Spreadsheet('1-XlENZVrZ9oYx6UqIUi5V3eq0l3RPDCfeXIyB6TC2NA')
 
     def on_start(self):
-
-        Clock.schedule_once(self.init_sheet, 0.1)
         Clock.schedule_interval(self.update_time, 1)
+        Clock.schedule_once(self.init_sheet, 0.1)
         Clock.schedule_once(self.get_tickets_from_sheet, 5)
         Clock.schedule_interval(self.get_tickets_from_sheet, 60*1)
         Clock.schedule_interval(self.rotate_tickets, 3)
