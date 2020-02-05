@@ -72,7 +72,7 @@ class TicketronApp(App):
         self.active_ticket = None  # For rotation - not currently used
         self.sheet = None  # To hold Google Sheet - initialized with a Clock.schedule_once to avoid startup lag
         self.play_audio = True  # change to false to disable sound
-        self.new_ticket_sound = SoundLoader.load('audio/0745.wav') # New ticket sound
+        self.new_ticket_sound = SoundLoader.load('audio/chime.wav') # New ticket sound
         
     def update_time(self, _):
         self.root.ids.time.text = strftime('%-I:%M')
