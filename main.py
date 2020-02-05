@@ -22,7 +22,7 @@ class DashboardScreen(Screen):
     pass
 
 
-class TicketScreen(Screen):
+class OptionsScreen(Screen):
     pass
 
 
@@ -52,9 +52,11 @@ class TicketronApp(App):
     def __init__(self):
         super().__init__()
         self.all_tickets = set()
+        self.all_pins = set()
         self.new_tickets = set()
         self.ticket_widgets = {}
         self.current_ticket = 0
+        self.active_ticket = None
         self.sheet = None
 
 
@@ -77,7 +79,7 @@ class TicketronApp(App):
         try:
             t = self.ticket_widgets.pop(n[0])
             self.all_tickets.remove(n)
-            a = Animation(opacity=0)
+            a = Animation(opacity=0, duration=5)
 
             def callback(*args):
                 self.root.ids.tickets.remove_widget(t)
@@ -89,42 +91,56 @@ class TicketronApp(App):
 
 
     def get_tickets_from_sheet(self, *_):
-        self.sheet.refresh()
-        ws = self.sheet.sheets[0]
-        print(ws.title, ws.columnCount, ws.rowCount)
-        ws.getRows()
+        try:
+            self.sheet.refresh()
+            ws = self.sheet.sheets[0]
+            print(ws.title, ws.columnCount, ws.rowCount)
+            ws.getRows()
 
-        new_tickets = set()
+            new_tickets = set()
 
-        for row in ws:
-            if row[8] in [ "0 - New", "1 - Open" ]:
-                status = 'NEW' if row[8] == "0 - New" else 'OPEN'
-                id = row[9]
-                title = re.sub(r"re: |fwd: |\[EXTERNAL\] ", "", row[3], flags=re.I)
-                fr = row[2]
-                new_tickets.add((id, title, fr, status))
+            for row in ws:
+                if row[8] in [ "0 - New", "1 - Open" ]:
+                    status = 'NEW' if row[8] == "0 - New" else 'OPEN'
+                    id = row[9]
+                    title = re.sub(r"re: |fwd: |\[EXTERNAL\] ", "", row[3], flags=re.I)
+                    fr = row[2]
+                    new_tickets.add((id, title, fr, status))
 
-        for t in self.all_tickets.difference(new_tickets):
-            self.remove_ticket(t)
+            for t in self.all_tickets.difference(new_tickets):
+                self.remove_ticket(t)
 
-        for t in new_tickets.difference(self.all_tickets):
+            for t in new_tickets.difference(self.all_tickets):
+                self.add_ticket(t)
+
+            num_tickets = len(self.all_tickets)
+            self.root.ids.ticket_header.text = f"[b]{num_tickets}[/b] Open Ticket{'s' if num_tickets != 1 else ''}"
+        except ConnectionResetError:
+            t = ('ConnectionResetError', 'Connection Error', 'EZSheets', 'NEW')
             self.add_ticket(t)
-
-        num_tickets = len(self.all_tickets)
-        self.root.ids.ticket_header.text = f"[b]{num_tickets}[/b] Open Ticket{'s' if num_tickets != 1 else ''}"
 
 
 
 
 
     def rotate_tickets(self, n):
-        self.current_ticket += 1
-        if self.current_ticket >= len(self.ticket_widgets):
-            self.current_ticket = 0
-        try:
-            self.ticket_widgets[self.current_ticket].dispatch('on_touch_down', self.ticket_widgets[self.current_ticket])
-        except KeyError:
-            pass
+        if len(self.ticket_widgets) > 0:
+            self.current_ticket += 1
+            if self.current_ticket >= len(self.ticket_widgets):
+                self.current_ticket = 0
+            try:
+                self.active_ticket.size_hint = (0.2, None)
+            except Exception:
+                pass
+
+            try:
+                [wid] = [w for e, w in list(enumerate(self.ticket_widgets)) if e == self.current_ticket]
+                self.active_ticket = self.ticket_widgets[wid]
+                self.active_ticket.size_hint = (.8, None)
+                #widgets[self.current_ticket].dispatch('on_touch_down', widgets[self.current_ticket])
+                print(wid)
+            except KeyError as e:
+                print(e)
 
     def init_sheet(self, n):
         self.sheet = ezsheets.Spreadsheet('1-XlENZVrZ9oYx6UqIUi5V3eq0l3RPDCfeXIyB6TC2NA')
@@ -134,7 +150,7 @@ class TicketronApp(App):
         Clock.schedule_once(self.init_sheet, 0.1)
         Clock.schedule_once(self.get_tickets_from_sheet, 5)
         Clock.schedule_interval(self.get_tickets_from_sheet, 60*1)
-        Clock.schedule_interval(self.rotate_tickets, 3)
+        #Clock.schedule_interval(self.rotate_tickets, 3)
 
 
 
