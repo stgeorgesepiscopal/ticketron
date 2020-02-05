@@ -79,16 +79,18 @@ WindowManager:
                     size_hint: (0.66, 1)
 
                     # Open Tickets header
-                    Button:
-                        id: ticket_header
-                        text: 'Open Tickets'
-                        background_normal: ''
-                        background_color: 0, 0, 0, 0
+                    BoxLayout:
                         size_hint: 1, None
-                        height: 70
-                        font_size: 70
-                        markup: True
-                        on_press: app.get_tickets_from_sheet()
+                        Button:
+                            id: ticket_header
+                            text: 'Open Tickets'
+                            background_normal: ''
+                            background_color: 0, 0, 0, 0
+
+                            height: 70
+                            font_size: 70
+                            markup: True
+                            on_press: app.get_tickets_from_sheet()
 
                     # Open Tickets items
                     StackLayout:
@@ -97,16 +99,18 @@ WindowManager:
                         spacing: 10
 
                     # Pinned items header
-                    Button:
-                        id: pins_header
-                        text: 'Pinned Items'
-                        background_normal: ''
-                        background_color: 0, 0, 0, 0
+                    BoxLayout:
                         size_hint: 1, None
-                        height: 50
-                        font_size: 50
-                        markup: True
-                        #on_press: app.get_tickets_from_sheet()
+                        Button:
+                            id: pins_header
+                            text: 'Pinned Items'
+                            background_normal: ''
+                            background_color: 0, 0, 0, 0
+
+                            height: 50
+                            font_size: 50
+                            markup: True
+                            #on_press: app.get_tickets_from_sheet()
 
                     # Pinned Tickets items
                     StackLayout:
