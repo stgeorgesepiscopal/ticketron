@@ -1,0 +1,8 @@
+/token-drive.pickle
+/token-sheets.pickle
+/.python-version
+/credentials-sheets.json
+*.jar
+*.zip
+*.whl
+/.idea/*
