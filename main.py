@@ -1,4 +1,5 @@
 import re
+from types import SimpleNamespace
 from time import strftime
 
 from kivy.app import App
@@ -16,6 +17,13 @@ import ezsheets
 LabelBase.register(name='Roboto',
                    fn_regular='Roboto-Thin.ttf',
                    fn_bold='Roboto-Medium.ttf')
+
+
+TicketStatus = SimpleNamespace(
+    NEW="0 - New",
+    OPEN="1 - Open",
+    PINNED="8 - Pinned",
+    CLOSED="9 - Closed")
 
 
 class DashboardScreen(Screen):
@@ -40,6 +48,10 @@ class NewTicketItem(TicketItem):
     pass
 
 
+class PinnedTicketItem(TicketItem):
+    pass
+
+
 class WindowManager(ScreenManager):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -47,17 +59,20 @@ class WindowManager(ScreenManager):
     
 
 class TicketronApp(App):
+    """
+    Main app class - Receives styling / layout from ticketron.kv (Kivy syntax)
+    """
     def __init__(self):
         super().__init__()
         self.all_tickets = set()
         self.all_pins = set()
-        self.new_tickets = set()
-        self.ticket_widgets = {}
-        self.current_ticket = 0
-        self.active_ticket = None
-        self.sheet = None
-        self.playAudio = True  # change to false to disable sound
-        self.sound = SoundLoader.load('audio/0745.wav')
+        
+        self.ticket_widgets = {}  # Hold reference to individual widgets, referenced by ticket ID
+        self.current_ticket = 0  # For rotation - not currently used
+        self.active_ticket = None  # For rotation - not currently used
+        self.sheet = None  # To hold Google Sheet - initialized with a Clock.schedule_once to avoid startup lag
+        self.play_audio = True  # change to false to disable sound
+        self.new_ticket_sound = SoundLoader.load('audio/0745.wav') # New ticket sound
         
     def update_time(self, _):
         self.root.ids.time.text = strftime('%-I:%M')
@@ -65,67 +80,88 @@ class TicketronApp(App):
         self.root.ids.ampm.text = strftime('[b]%p[/b]')
         self.root.ids.calendar.text = strftime('[b]%A[/b] %B %-d')
 
-    def add_ticket(self, n):
-        if n[3] == "NEW":
-            t = NewTicketItem(text=f"[b]{n[1]}[/b][size=30sp]\n{n[2]}[/size]")
-            if self.playAudio:
-                self.sound.play()
-                #print('Sound found at: %s' % playAudio.source)
-                #print('Sound is %.3f seconds' % playAudio.length)
+    def add_pin(self, pin_data):
+        t = PinnedTicketItem(text=f"[size=30sp][b]{pin_data[1]}[/b][/size][size=15sp]\n{pin_data[2]}[/size]")
+        self.all_pins.add(pin_data)
+        self.root.ids.pins.add_widget(t)
+
+    def add_ticket(self, ticket_data):
+        ticket_id, ticket_title, ticket_author, ticket_status = ticket_data
+        if ticket_status == TicketStatus.NEW:
+            ticket_widget = NewTicketItem(text=f"[b]{ticket_title}[/b][size=30sp]\n{ticket_author}[/size]")
+            if self.play_audio and self.new_ticket_sound:
+                self.new_ticket_sound.play()
+        elif ticket_status == TicketStatus.OPEN:
+            ticket_widget = TicketItem(text=f"[b]{ticket_title}[/b][size=30sp]\n{ticket_author}[/size]")
+        elif ticket_status == TicketStatus.PINNED:
+            ticket_widget = PinnedTicketItem(text=f"[size=30sp][b]{ticket_title}[/b][/size][size=20sp]\n{ticket_author}[/size]")
         else:
-            t = TicketItem(text=f"[b]{n[1]}[/b][size=30sp]\n{n[2]}[/size]")
-        self.ticket_widgets[n[0]] = t
-        self.all_tickets.add(n)
-        self.root.ids.tickets.add_widget(t)
+            ticket_widget = None
 
+        self.ticket_widgets[ticket_id] = ticket_widget
+        self.all_tickets.add(ticket_data)
+        if ticket_status in [TicketStatus.NEW, TicketStatus.OPEN]:
+            self.root.ids.tickets.add_widget(ticket_widget)
+        else:
+            self.root.ids.pins.add_widget(ticket_widget)
 
-    def remove_ticket(self, n):
+    def remove_ticket(self, ticket_data):
+        ticket_id, ticket_title, ticket_author, ticket_status = ticket_data
         try:
-            t = self.ticket_widgets.pop(n[0])
-            self.all_tickets.remove(n)
-            a = Animation(opacity=0, duration=5)
+            ticket = self.ticket_widgets.pop(ticket_id)
+            self.all_tickets.remove(ticket_data)
 
-            def callback(*args):
-                self.root.ids.tickets.remove_widget(t)
+            def callback_open(*_):
+                self.root.ids.tickets.remove_widget(ticket)
 
-            a.bind(on_complete=callback)
-            a.start(t)
+            def callback_pinned(*_):
+                self.root.ids.pins.remove_widget(ticket)
+
+            animation = Animation(opacity=0, duration=5)
+
+            if ticket_status in [TicketStatus.NEW, TicketStatus.OPEN]:
+                animation.bind(on_complete=callback_open)
+            else:
+                animation.bind(on_complete=callback_pinned)
+
+            animation.start(ticket)
+
         except KeyError:
             pass
-
 
     def get_tickets_from_sheet(self, *_):
         try:
             self.sheet.refresh()
             ws = self.sheet.sheets[0]
-            print(ws.title, ws.columnCount, ws.rowCount)
+            # print(ws.title, ws.columnCount, ws.rowCount)
             ws.getRows()
 
-            new_tickets = set()
+            current_tickets = set()
 
             for row in ws:
-                if row[8] in [ "0 - New", "1 - Open" ]:
-                    status = 'NEW' if row[8] == "0 - New" else 'OPEN'
-                    id = row[9]
-                    title = re.sub(r"re: |fwd: |\[EXTERNAL\] ", "", row[3], flags=re.I)
-                    fr = row[2]
-                    new_tickets.add((id, title, fr, status))
+                ticket_status = row[8]
 
-            for t in self.all_tickets.difference(new_tickets):
-                self.remove_ticket(t)
+                if ticket_status in [TicketStatus.NEW, TicketStatus.OPEN, TicketStatus.PINNED]:
+                    ticket_id = row[9]
+                    ticket_title = re.sub(r"re: |fwd: |\[EXTERNAL\] ", "", row[3], flags=re.I)
+                    ticket_author = row[2]
+                    current_tickets.add((ticket_id, ticket_title, ticket_author, ticket_status))
 
-            for t in new_tickets.difference(self.all_tickets):
-                self.add_ticket(t)
+            for ticket in self.all_tickets.difference(current_tickets):
+                self.remove_ticket(ticket)
 
-            num_tickets = len(self.all_tickets)
-            self.root.ids.ticket_header.text = f"[b]{num_tickets}[/b] Open Ticket{'s' if num_tickets != 1 else ''}"
+            for ticket in current_tickets.difference(self.all_tickets):
+                self.add_ticket(ticket)
+
+            num_open_tickets = len([t for t in self.all_tickets if t[3] != TicketStatus.PINNED])
+            num_pins = len([t for t in self.all_tickets if t[3] == TicketStatus.PINNED])
+
+            self.root.ids.ticket_header.text = f"[b]{num_open_tickets}[/b] Open Ticket{'s' if num_open_tickets != 1 else ''}"
+            self.root.ids.pins_header.text = f"[b]{num_pins}[/b] Pinned Item{'s' if num_pins != 1 else ''}"
+
         except ConnectionResetError:
             t = ('ConnectionResetError', 'Connection Error', 'EZSheets', 'NEW')
             self.add_ticket(t)
-
-
-
-
 
     def rotate_tickets(self, n):
         if len(self.ticket_widgets) > 0:
@@ -138,11 +174,10 @@ class TicketronApp(App):
                 pass
 
             try:
-                [wid] = [w for e, w in list(enumerate(self.ticket_widgets)) if e == self.current_ticket]
-                self.active_ticket = self.ticket_widgets[wid]
+                [widget] = [w for e, w in list(enumerate(self.ticket_widgets)) if e == self.current_ticket]
+                self.active_ticket = self.ticket_widgets[widget]
                 self.active_ticket.size_hint = (.8, None)
-                #widgets[self.current_ticket].dispatch('on_touch_down', widgets[self.current_ticket])
-                print(wid)
+
             except KeyError as e:
                 print(e)
 
@@ -154,9 +189,7 @@ class TicketronApp(App):
         Clock.schedule_once(self.init_sheet, 0.1)
         Clock.schedule_once(self.get_tickets_from_sheet, 5)
         Clock.schedule_interval(self.get_tickets_from_sheet, 60*1)
-        #Clock.schedule_interval(self.rotate_tickets, 3)
-
-
+        # Clock.schedule_interval(self.rotate_tickets, 3)
 
 
 if __name__ == "__main__":
