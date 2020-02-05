@@ -65,12 +65,12 @@ WindowManager:
         BoxLayout:
             orientation: 'vertical'
             padding: 20
-            #size_hint: 1, 0.8
+            size_hint: 1, 1
 
             # Big box around content area
             BoxLayout:
                 orientation: 'horizontal'
-                #size_hint: 1, 0.8
+                size_hint: 1, 1
 
                 # Left side layout
                 BoxLayout:
@@ -80,42 +80,49 @@ WindowManager:
 
                     # Open Tickets header
                     BoxLayout:
-                        size_hint: 1, None
+                        orientation: 'vertical'
+                        #size_hint: 1, .5
                         Button:
                             id: ticket_header
                             text: 'Open Tickets'
                             background_normal: ''
                             background_color: 0, 0, 0, 0
-
-                            height: 70
+                            size_hint: (1, .2)
+                            #height: 70
                             font_size: 70
                             markup: True
                             on_press: app.get_tickets_from_sheet()
 
-                    # Open Tickets items
-                    StackLayout:
-                        size_hint: 1, None
-                        id: tickets
-                        spacing: 10
+                        # Open Tickets items
+                        StackLayout:
+                            #size_hint: 1, None
+                            id: tickets
+                            spacing: 10
 
                     # Pinned items header
                     BoxLayout:
-                        size_hint: 1, None
+                        orientation: 'vertical'
+                        #size_hint: 1, None
                         Button:
                             id: pins_header
                             text: 'Pinned Items'
                             background_normal: ''
                             background_color: 0, 0, 0, 0
 
-                            height: 50
+                            #height: 50
                             font_size: 50
+                            size_hint: 1, .15
                             markup: True
                             #on_press: app.get_tickets_from_sheet()
 
-                    # Pinned Tickets items
-                    StackLayout:
-                        id: pins
-                        spacing: 10
+                        # Pinned Tickets items
+                        StackLayout:
+                            id: pins
+                            spacing: 10
+
+                        # Spacer to avoid the bottom
+                        Label:
+                            size_hint: (1, .2)
 
 
                 # Right side layout

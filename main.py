@@ -102,6 +102,7 @@ class TicketronApp(App):
         self.all_tickets.add(ticket_data)
         if ticket_status in [TicketStatus.NEW, TicketStatus.OPEN]:
             self.root.ids.tickets.add_widget(ticket_widget)
+
         else:
             self.root.ids.pins.add_widget(ticket_widget)
 
