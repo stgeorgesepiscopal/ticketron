@@ -9,9 +9,9 @@ from kivy.uix.image import Image
 from kivy.uix.accordion import AccordionItem
 from kivy.uix.button import Button
 from kivy.uix.screenmanager import Screen, ScreenManager, SwapTransition
+from kivy.core.audio import SoundLoader
 
 import ezsheets
-
 
 LabelBase.register(name='Roboto',
                    fn_regular='Roboto-Thin.ttf',
@@ -40,13 +40,11 @@ class NewTicketItem(TicketItem):
     pass
 
 
-
 class WindowManager(ScreenManager):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.bg_texture = Image(source='bg.jpg')
-    pass
-
+    
 
 class TicketronApp(App):
     def __init__(self):
@@ -56,8 +54,9 @@ class TicketronApp(App):
         self.ticket_widgets = {}
         self.current_ticket = 0
         self.sheet = None
-
-
+        self.playAudio = True  # change to false to disable sound
+        self.sound = SoundLoader.load('audio/0745.wav')
+        
     def update_time(self, _):
         self.root.ids.time.text = strftime('%-I:%M')
         self.root.ids.seconds.text = strftime('%S ')
@@ -67,11 +66,16 @@ class TicketronApp(App):
     def add_ticket(self, n):
         if n[3] == "NEW":
             t = NewTicketItem(text=f"[b]{n[1]}[/b][size=30sp]\n{n[2]}[/size]")
+            if self.playAudio:
+                self.sound.play()
+                #print('Sound found at: %s' % playAudio.source)
+                #print('Sound is %.3f seconds' % playAudio.length)
         else:
             t = TicketItem(text=f"[b]{n[1]}[/b][size=30sp]\n{n[2]}[/size]")
         self.ticket_widgets[n[0]] = t
         self.all_tickets.add(n)
         self.root.ids.tickets.add_widget(t)
+
 
     def remove_ticket(self, n):
         try:
