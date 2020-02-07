@@ -10,7 +10,12 @@ from kivy.uix.image import Image
 from kivy.uix.accordion import AccordionItem
 from kivy.uix.button import Button
 from kivy.uix.screenmanager import Screen, ScreenManager, SwapTransition
+from kivy.uix.settings import SettingsWithTabbedPanel
 from kivy.core.audio import SoundLoader
+from kivy.config import ConfigParser
+from kivy.config import Config
+from kivy.lang import Builder
+from kivy.logger import Logger
 
 import ezsheets
 
@@ -56,9 +61,74 @@ class WindowManager(ScreenManager):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.bg_texture = Image(source='bg.jpg')
-    
+
+# point to settings JSON
+# link to file next
+json = '''
+[
+    {
+        "type": "title",
+        "title": "Options"
+    },
+    {
+        "type": "bool",
+        "title": "Audio",
+        "desc": "Toggle audio ON | OFF",
+        "section": "Audio",
+        "key": "audio_bool"
+    }
+]
+'''
 
 class TicketronApp(App):
+    
+    #######################
+    # start OPTIONS panel #
+    #######################
+
+    def build_config(self, config):
+        """
+        Set the default values for the configs sections.
+        """
+        config.setdefaults('My Label', {'text': 'Hello', 'font_size': 20})
+        config.setdefaults('Audio', {'audio_bool': True, 'font-size': 20, 'value':['True', 'False']})
+
+    def build_settings(self, settings):
+        """
+        Add our custom section to the default configuration object.
+        """
+        # We use the string defined above for our JSON, but it could also be
+        # loaded from a file as follows:
+        #     settings.add_json_panel('My Label', self.config, 'settings.json')
+        settings.add_json_panel('Audio', self.config, data=json)
+
+    def on_config_change(self, config, section, key, value):
+        """
+        Respond to changes in the configuration.
+        """
+        Logger.info("main.py: App.on_config_change: {0}, {1}, {2}, {3}".format(
+            config, section, key, value))
+
+        if section == "My Label":
+            if key == "text":
+                self.root.ids.label.text = value
+            elif key == 'font_size':
+                self.root.ids.label.font_size = float(value)
+
+        if section == "Audio":
+            if key == 'audio_bool':
+                #self.root.ids.audio_bool = value
+                self.play_audio = value
+
+    def close_settings(self, settings=None):
+        """
+        The settings panel has been closed.
+        """
+        Logger.info("main.py: App.close_settings: {0}".format(settings))
+        super().close_settings(settings)
+    
+    ### END OPTIONS Panel ###
+    
     """
     Main app class - Receives styling / layout from ticketron.kv (Kivy syntax)
     """
@@ -74,6 +144,7 @@ class TicketronApp(App):
         self.play_audio = True  # change to false to disable sound
         self.new_ticket_sound = SoundLoader.load('audio/chime.wav') # New ticket sound
         
+    
     def update_time(self, _):
         self.root.ids.time.text = strftime('%-I:%M')
         self.root.ids.seconds.text = strftime('%S ')
@@ -89,8 +160,15 @@ class TicketronApp(App):
         ticket_id, ticket_title, ticket_author, ticket_status = ticket_data
         if ticket_status == TicketStatus.NEW:
             ticket_widget = NewTicketItem(text=f"[b]{ticket_title}[/b][size=30sp]\n{ticket_author}[/size]")
-            if self.play_audio and self.new_ticket_sound:
-                self.new_ticket_sound.play()
+            try:
+                print("AUDIO_BOOL !!!!!")
+                print(self.config.get('Audio', 'audio_bool'))
+                if self.config.getboolean('Audio', 'audio_bool') and self.new_ticket_sound:
+                    self.new_ticket_sound.play()
+            except KeyError:
+                for k, v in self.config:
+                    print(f"{k}: {v}")
+                self.stop()
         elif ticket_status == TicketStatus.OPEN:
             ticket_widget = TicketItem(text=f"[b]{ticket_title}[/b][size=30sp]\n{ticket_author}[/size]")
         elif ticket_status == TicketStatus.PINNED:
