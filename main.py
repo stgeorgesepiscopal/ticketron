@@ -254,7 +254,7 @@ class TicketronApp(App):
         Clock.schedule_interval(self.update_time, 1)
         Clock.schedule_once(self.init_sheet, 0.1)
         Clock.schedule_once(self.get_tickets_from_sheet, 5)
-        Clock.schedule_interval(self.get_tickets_from_sheet, 60 * 1)
+        Clock.schedule_interval(self.get_tickets_from_sheet, 15)
         # Clock.schedule_interval(self.rotate_tickets, 3)
 
 
