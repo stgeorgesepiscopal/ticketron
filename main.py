@@ -1,4 +1,5 @@
 import re
+import socket
 from types import SimpleNamespace
 from time import strftime
 
@@ -219,9 +220,14 @@ class TicketronApp(App):
                 f"[b]{num_pins}[/b] Pinned Item{'s' if num_pins != 1 else ''}"
             )
 
-        except ConnectionResetError:
-            t = ("ConnectionResetError", "Connection Error", "EZSheets", "NEW")
+        except ConnectionResetError as e:
+            t = ("ConnectionResetError", e.strerror, "EZSheets", "NEW")
             self.add_ticket(t)
+
+        except socket.timeout as e:
+            t = ("SocketTimeout", e.strerror, "EZSheets", "NEW")
+            self.add_ticket(t)
+
 
     def rotate_tickets(self, n):
         if len(self.ticket_widgets) > 0:
