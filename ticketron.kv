@@ -60,7 +60,7 @@ WindowManager:
                 pos: self.pos
                 #size: root.bg_texture.texture.size
                 size: self.size
-                source: 'bg.jpg'
+                source: 'assets/images/bg.jpg'
         # Big box around everything
         BoxLayout:
             orientation: 'vertical'
@@ -124,6 +124,16 @@ WindowManager:
                 BoxLayout:
                     id: right_layout
                     size_hint: (0.33, 1)
+                    AnchorLayout:
+                        anchor_x: 'right'
+                        anchor_y: 'top'
+
+                        Button:
+                            id: options_button
+                            text: 'o'
+                            on_touch_down: app.open_settings()
+                            size_hint: None, None
+                            size: self.texture_size
 
         # Spacer to avoid the bottom
         Label:

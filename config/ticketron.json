@@ -1,0 +1,9 @@
+[
+    {
+        "type": "bool",
+        "title": "Audio",
+        "desc": "Toggle audio ON | OFF",
+        "section": "Audio",
+        "key": "audio_alerts"
+    }
+]
