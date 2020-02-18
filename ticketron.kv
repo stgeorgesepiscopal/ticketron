@@ -130,8 +130,13 @@ WindowManager:
 
                         Button:
                             id: options_button
-                            text: 'o'
-                            on_touch_down: app.open_settings()
+                            markup: True
+                            font_name: 'FontAwesome'
+                            font_size: 50
+                            text: ''
+                            padding_x: 10
+                            padding_y: 5
+                            on_press: app.open_settings()
                             size_hint: None, None
                             size: self.texture_size
 

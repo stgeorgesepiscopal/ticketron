@@ -21,6 +21,11 @@ LabelBase.register(
     fn_bold="assets/fonts/Roboto-Medium.ttf",
 )
 
+LabelBase.register(
+    name="FontAwesome",
+    fn_regular="assets/fonts/Font-Awesome-5-Pro-Regular-400.ttf",
+)
+
 
 TicketStatus = SimpleNamespace(
     NEW="0 - New", OPEN="1 - Open", PINNED="8 - Pinned", CLOSED="9 - Closed"
