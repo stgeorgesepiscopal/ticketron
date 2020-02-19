@@ -220,7 +220,9 @@ class TicketronApp(App):
             )
             num_pins = len([t for t in self.all_tickets if t[3] == TicketStatus.PINNED])
 
-            self.root.ids.ticket_header.text = f"[b]{num_open_tickets}[/b] Open Ticket{'s' if num_open_tickets != 1 else ''}"
+            closed_total = self.sheet.sheets[1].get('B7')
+
+            self.root.ids.ticket_header.text = f"[b]{num_open_tickets}[/b] Open Ticket{'s' if num_open_tickets != 1 else ''} [sup][font=FontAwesome][/font] [b]{closed_total}[/b][/sup]"
             self.root.ids.pins_header.text = (
                 f"[b]{num_pins}[/b] Pinned Item{'s' if num_pins != 1 else ''}"
             )
