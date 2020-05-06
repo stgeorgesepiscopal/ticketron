@@ -2,7 +2,9 @@
 /token-sheets.pickle
 /.python-version
 /credentials-sheets.json
+/credentials.json
 *.jar
 *.zip
 *.whl
 /.idea/*
+
