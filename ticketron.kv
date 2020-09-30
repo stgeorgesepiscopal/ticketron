@@ -99,51 +99,62 @@ WindowManager:
                             id: tickets
                             spacing: 10
 
-
-                        Label:
-                            id: pins_header
-                            text: 'Pinned Items'
-
-                            #height: 50
-                            font_size: 50
-                            size_hint: 1, .15
-                            markup: True
-
-
-                        # Pinned Tickets items
-                        StackLayout:
-                            id: pins
-                            spacing: 10
-
                         # Spacer to avoid the bottom
-                        Label:
+                        BoxLayout:
                             size_hint: (1, .2)
 
 
                 # Right side layout
                 BoxLayout:
                     id: right_layout
+                    orientation: 'vertical'
+                    padding: 10
                     size_hint: (0.33, 1)
+                    
+		    # Anchors settings button to top right
                     AnchorLayout:
                         anchor_x: 'right'
                         anchor_y: 'top'
+                        size_hint: (1, .05) 
 
                         Button:
                             id: options_button
                             markup: True
                             font_name: 'FontAwesome'
-                            font_size: 50
+                            font_size: 30
                             text: ''
                             padding_x: 10
                             padding_y: 5
                             on_press: app.open_settings()
-                            size_hint: None, None
-                            size: self.texture_size
+                            size_hint: (.1, 1)
+                            #size: self.texture_size
+		    
+		    # Pinned Items section
+                    BoxLayout:
+                        orientation: 'vertical'
+	                    Label:
+	                        id: pins_header
+	                        text: 'Pinned Items'
+	                        #height: 50
+	                        font_size: 50
+	                        markup: True
+	                        padding_x: 10
+	                        padding_y: 5
+	                        size_hint: (1, .2)
+	                        size: self.texture_size 
+
+	                    # Pinned Tickets items
+	                    StackLayout:
+	                        id: pins
+	                        spacing: 10
+
+		            # Spacer to avoid the bottom
+		            Label:
+		                size_hint: (1, .2)
 
         # Spacer to avoid the bottom
         Label:
             size_hint: (1, .2)
-
 
 
         # Time / Date section - anchored
@@ -172,37 +183,38 @@ WindowManager:
                         size_hint: (None, 1)
                         pos_hint: {'right': 1}
                         size: (self.texture_size[0], self.line_height)
-
+		   
                     # Seconds / AM/PM Vertical split
                     BoxLayout:
                         orientation: 'vertical'
                         size_hint: (None, None)
 
                         # Seconds
-                        Label:
-                            id: seconds
-                            text: '00'
-                            font_name: 'Roboto'
-                            markup: True
-                            font_size: 60
-                            halign: 'left'
-                            pos_hint: {'left': 1}
-                            size_hint: None, 1
-                            #size: (self.texture_size[0], self.line_height / 2)
-                            size: (self.texture_size[0], root.ids.time.height / 2)
+	                    Label:
+	                        id: seconds
+	                        text: '00'
+	                        font_name: 'Roboto'
+	                        markup: True
+	                        font_size: 60
+	                        halign: 'left'
+	                        pos_hint: {'left': 1}
+	                        size_hint: None, 1
+	                        #size: (self.texture_size[0], self.line_height / 2)
+	                        size: (self.texture_size[0], root.ids.time.height / 2)
 
                         # AM/PM indicator
-                        Label:
-                            id: ampm
-                            text: 'XM'
-                            font_name: 'Roboto'
-                            markup: True
-                            font_size: 60
-                            halign: 'left'
-                            pos_hint: {'left': 1}
-                            size_hint: None, 1
-                            size: (self.texture_size[0], root.ids.time.height / 2)
+	                    Label:
+	                        id: ampm
+	                        text: 'XM'
+	                        font_name: 'Roboto'
+	                        markup: True
+	                        font_size: 60
+	                        halign: 'left'
+	                        pos_hint: {'left': 1}
+	                        size_hint: None, 1
+	                        size: (self.texture_size[0], root.ids.time.height / 2)
 
+		                                
                 # Date
                 Label:
                     id: calendar
