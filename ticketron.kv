@@ -49,6 +49,24 @@
     size_hint: (.2, None)
     height: 60
 
+<InfoScroll>:
+    do_scroll_x: True
+    size_hint_x: 1
+    size_hint_y: 1
+
+<InfoLabel>:
+    text_size_x: root.width
+    text_size_y: root.height
+    size_hint_x: None
+    size_hint_y: None
+    size: self.texture_size
+    font_name: 'Roboto'
+    markup: True
+    font_size: "24sp"
+    halign: 'left'
+
+
+
 # Wrap in WindowManager so new screens can be added later if desired
 WindowManager:
 
@@ -91,7 +109,7 @@ WindowManager:
                             #height: 70
                             font_size: 70
                             markup: True
-                            on_press: app.get_tickets_from_sheet()
+
 
                         # Open Tickets items
                         StackLayout:

@@ -1,19 +1,22 @@
-import re
-import socket
+import asyncio
+
 from types import SimpleNamespace
 from time import strftime
 
 from kivy.app import App
+
 from kivy.animation import Animation
-from kivy.clock import Clock
 from kivy.core.text import LabelBase
 from kivy.uix.image import Image
 from kivy.uix.button import Button
+from kivy.uix.popup import Popup
+from kivy.uix.scrollview import ScrollView
+from kivy.uix.label import Label
 from kivy.uix.screenmanager import Screen, ScreenManager
 from kivy.core.audio import SoundLoader
 from kivy.logger import Logger
 
-import ezsheets
+from views.sheets import get_tickets, get_stats
 
 LabelBase.register(
     name="Roboto",
@@ -54,6 +57,14 @@ class PinnedTicketItem(TicketItem):
     pass
 
 
+class InfoScroll(ScrollView):
+    pass
+
+
+class InfoLabel(Label):
+    pass
+
+
 class WindowManager(ScreenManager):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -64,6 +75,22 @@ class TicketronApp(App):
     """
     Main app class - Receives styling / layout from ticketron.kv (Kivy syntax)
     """
+    update_time_task = None
+    sheet_refresh_task = None
+
+    def app_func(self):
+        self.update_time_task = asyncio.ensure_future(self.update_time())
+        self.sheet_refresh_task = asyncio.ensure_future(self.sheet_refresh())
+
+        async def run_wrapper():
+            # we don't actually need to set asyncio as the lib because it is
+            # the default, but it doesn't hurt to be explicit
+            await self.async_run(async_lib='asyncio')
+            print('App done')
+            self.update_time_task.cancel()
+            self.sheet_refresh_task.cancel()
+
+        return asyncio.gather(run_wrapper(), self.update_time_task, self.sheet_refresh_task)
 
     def __init__(self):
         super().__init__()
@@ -73,6 +100,9 @@ class TicketronApp(App):
         self.ticket_widgets = (
             {}
         )  # Hold reference to individual widgets, referenced by ticket ID
+        self.all_ticket_messages = (
+            {}
+        )
         self.current_ticket = 0  # For rotation - not currently used
         self.active_ticket = None  # For rotation - not currently used
         self.sheet = None  # To hold Google Sheet - initialized with a Clock.schedule_once to avoid startup lag
@@ -109,11 +139,16 @@ class TicketronApp(App):
         Logger.info(f"main.py: App.close_settings: {settings}")
         super().close_settings(settings)
 
-    def update_time(self, _):
-        self.root.ids.time.text = strftime("%-I:%M")
-        self.root.ids.seconds.text = strftime("%S ")
-        self.root.ids.ampm.text = strftime("[b]%p[/b]")
-        self.root.ids.calendar.text = strftime("[b]%A[/b] %B %-d")
+    async def update_time(self):
+        while True:
+            try:
+                self.root.ids.time.text = strftime("%-I:%M")
+                self.root.ids.seconds.text = strftime("%S ")
+                self.root.ids.ampm.text = strftime("[b]%p[/b]")
+                self.root.ids.calendar.text = strftime("[b]%A[/b] %B %-d")
+            except Exception as e:
+                print(e)
+            await asyncio.sleep(1)
 
     def add_pin(self, pin_data):
         t = PinnedTicketItem(
@@ -123,10 +158,13 @@ class TicketronApp(App):
         self.root.ids.pins.add_widget(t)
 
     def add_ticket(self, ticket_data):
-        ticket_id, ticket_title, ticket_author, ticket_status = ticket_data
-        if ticket_status == TicketStatus.NEW:
+        # ticket_id, ticket_title, ticket_author, ticket_status = ticket_data
+        ticket = dict(ticket_data)
+        show_ticket_callback = lambda t:self.show_ticket_info(title=ticket['Title'], messages=f"{ticket['Messages']}")
+        if ticket["Status"] == TicketStatus.NEW:
             ticket_widget = NewTicketItem(
-                text=f"[b]{ticket_title}[/b][size=30sp]\n{ticket_author}[/size]"
+                text=f"[b]{ticket['Title']}[/b][size=30sp]\n{ticket['Requested By']}[/size]",
+                on_press=show_ticket_callback
             )
             try:
                 print("audio_alerts !!!!!")
@@ -140,74 +178,65 @@ class TicketronApp(App):
                 for k, v in self.config:
                     print(f"{k}: {v}")
                 self.stop()
-        elif ticket_status == TicketStatus.OPEN:
+        elif ticket["Status"] == TicketStatus.OPEN:
             ticket_widget = TicketItem(
-                text=f"[b]{ticket_title}[/b][size=30sp]\n{ticket_author}[/size]"
+                text=f"[b]{ticket['Title']}[/b][size=30sp]\n{ticket['Requested By']}[/size]",
+                on_press=show_ticket_callback
             )
-        elif ticket_status == TicketStatus.PINNED:
+        elif ticket["Status"] == TicketStatus.PINNED:
             ticket_widget = PinnedTicketItem(
-                text=f"[size=30sp][b]{ticket_title}[/b][/size][size=20sp]\n{ticket_author}[/size]"
+                text=f"[size=30sp][b]{ticket['Title']}[/b][/size][size=20sp]\n{ticket['Requested By']}[/size]",
+                on_press=show_ticket_callback
             )
         else:
             ticket_widget = None
 
-        self.ticket_widgets[ticket_id] = ticket_widget
+        self.ticket_widgets[ticket["ID"]] = ticket_widget
         self.all_tickets.add(ticket_data)
-        if ticket_status in [TicketStatus.NEW, TicketStatus.OPEN]:
+        if ticket["Status"] in [TicketStatus.NEW, TicketStatus.OPEN]:
             self.root.ids.tickets.add_widget(ticket_widget)
-
         else:
             self.root.ids.pins.add_widget(ticket_widget)
 
     def remove_ticket(self, ticket_data):
-        ticket_id, ticket_title, ticket_author, ticket_status = ticket_data
+        ticket = dict(ticket_data)
+
         try:
-            ticket = self.ticket_widgets.pop(ticket_id)
+            ticket_widget = self.ticket_widgets.pop(ticket["ID"])
             self.all_tickets.remove(ticket_data)
 
             def callback_open(*_):
-                self.root.ids.tickets.remove_widget(ticket)
+                self.root.ids.tickets.remove_widget(ticket_widget)
 
             def callback_pinned(*_):
-                self.root.ids.pins.remove_widget(ticket)
+                self.root.ids.pins.remove_widget(ticket_widget)
 
             animation = Animation(opacity=0, duration=5)
 
-            if ticket_status in [TicketStatus.NEW, TicketStatus.OPEN]:
+            if ticket["Status"] in [TicketStatus.NEW, TicketStatus.OPEN]:
                 animation.bind(on_complete=callback_open)
             else:
                 animation.bind(on_complete=callback_pinned)
 
-            animation.start(ticket)
+            animation.start(ticket_widget)
 
         except KeyError:
             pass
 
-    def get_tickets_from_sheet(self, *_):
-        try:
-            self.sheet.refresh()
-            ws = self.sheet.sheets[0]
-            # print(ws.title, ws.columnCount, ws.rowCount)
-            ws.getRows()
 
-            current_tickets = set()
+    def show_ticket_info(self, title, messages):
 
-            for row in ws:
-                ticket_status = row[8]
+        view = Popup(size_hint=(0.8, 0.8), title=title)
+        scrollview = InfoScroll()
+        view.add_widget(scrollview)
+        scrollview.add_widget(InfoLabel(text=messages))
+        view.open()
 
-                if ticket_status in [
-                    TicketStatus.NEW,
-                    TicketStatus.OPEN,
-                    TicketStatus.PINNED,
-                ]:
-                    ticket_id = row[9]
-                    ticket_title = re.sub(
-                        r"re: |fwd: |\[EXTERNAL\] ", "", row[3], flags=re.I
-                    )
-                    ticket_author = row[2]
-                    current_tickets.add(
-                        (ticket_id, ticket_title, ticket_author, ticket_status)
-                    )
+
+    async def sheet_refresh(self):
+
+        while True:
+            current_tickets = await get_tickets()
 
             for ticket in self.all_tickets.difference(current_tickets):
                 self.remove_ticket(ticket)
@@ -216,24 +245,19 @@ class TicketronApp(App):
                 self.add_ticket(ticket)
 
             num_open_tickets = len(
-                [t for t in self.all_tickets if t[3] != TicketStatus.PINNED]
+                [t for t in self.all_tickets if dict(t)["Status"] != TicketStatus.PINNED]
             )
-            num_pins = len([t for t in self.all_tickets if t[3] == TicketStatus.PINNED])
+            num_pins = len([t for t in self.all_tickets if dict(t)["Status"] == TicketStatus.PINNED])
 
-            closed_total = self.sheet.sheets[1].get('B7')
+            stats = await get_stats()
+            closed_total = stats["closed_total"]
 
             self.root.ids.ticket_header.text = f"[b]{num_open_tickets}[/b] Open Ticket{'s' if num_open_tickets != 1 else ''} [sup][font=FontAwesome][/font] [b]{closed_total}[/b][/sup]"
             self.root.ids.pins_header.text = (
                 f"[b]{num_pins}[/b] Pinned Item{'s' if num_pins != 1 else ''}"
             )
+            await asyncio.sleep(30)
 
-        except ConnectionResetError as e:
-            t = ("ConnectionResetError", e.strerror, "EZSheets", "NEW")
-            self.add_ticket(t)
-
-        except socket.timeout as e:
-            t = ("SocketTimeout", e.strerror, "EZSheets", "NEW")
-            self.add_ticket(t)
 
 
     def rotate_tickets(self, n):
@@ -258,18 +282,18 @@ class TicketronApp(App):
             except KeyError as e:
                 print(e)
 
-    def init_sheet(self, n):
-        self.sheet = ezsheets.Spreadsheet(
-            "1-XlENZVrZ9oYx6UqIUi5V3eq0l3RPDCfeXIyB6TC2NA"
-        )
 
     def on_start(self):
-        Clock.schedule_interval(self.update_time, 1)
-        Clock.schedule_once(self.init_sheet, 0.1)
-        Clock.schedule_once(self.get_tickets_from_sheet, 5)
-        Clock.schedule_interval(self.get_tickets_from_sheet, 15)
+        pass
+        # Clock.schedule_interval(self.update_time, 1)
+        # Clock.schedule_once(self.init_sheet, 0.1)
+        # Clock.schedule_once(self.get_tickets_from_sheet, 5)
+        # Clock.schedule_interval(self.get_tickets_from_sheet, 15)
         # Clock.schedule_interval(self.rotate_tickets, 3)
 
 
 if __name__ == "__main__":
-    TicketronApp().run()
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(TicketronApp().app_func())
+    loop.close()
+

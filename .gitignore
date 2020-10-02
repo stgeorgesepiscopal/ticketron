@@ -2,6 +2,10 @@
 /token-sheets.pickle
 /.python-version
 /credentials-sheets.json
+/credentials.json
+/ticketron.json
+/.vscode/*
+__pycache__
 *.jar
 *.zip
 *.whl
