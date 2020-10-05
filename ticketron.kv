@@ -47,7 +47,7 @@
 # PinnedTicketItem(TicketItem) styling
 <PinnedTicketItem>:
     size_hint: (.2, None)
-    height: 60
+    # height: 40
 
 <InfoScroll>:
     do_scroll_x: True
@@ -88,38 +88,67 @@ WindowManager:
             # Big box around content area
             BoxLayout:
                 orientation: 'horizontal'
-                size_hint: 1, 1
+                size_hint: 0.9, 1
 
                 # Left side layout
-                BoxLayout:
+                StackLayout:
                     id: left_layout
-                    orientation: 'vertical'
-                    size_hint: (0.66, 1)
+                    # orientation: 'vertical'
+                    orientation: 'tb-lr'
+                    size_hint: (1, 1)
 
                     # Open Tickets header
-                    BoxLayout:
-                        orientation: 'vertical'
-                        #size_hint: 1, .5
-                        Button:
-                            id: ticket_header
-                            text: 'Open Tickets'
-                            background_normal: ''
-                            background_color: 0, 0, 0, 0
-                            size_hint: (1, .2)
-                            #height: 70
-                            font_size: 70
-                            markup: True
+                    #BoxLayout:
+                    #    orientation: 'vertical'
+                    #    #size_hint: 1, .5
+                    Button:
+                        id: ticket_header
+                        text: 'Open Tickets'
+                        background_normal: ''
+                        background_color: 0, 0, 0, 0
+                        size_hint: (1, .15)
+                        #height: 70
+                        font_size: 70
+                        markup: True
 
 
-                        # Open Tickets items
+                    # Open Tickets items
+                    StackLayout:
+                        size_hint: 1, None
+                        width: self.parent.width
+                        height: self.minimum_height
+                        id: tickets
+                        spacing: 10
+
+                        # Pinned Items section
+
+                    Label:
+                        id: pins_header
+                        text: 'Pinned Items'
+                        #height: 50
+                        font_size: 60
+                        markup: True
+                        padding_x: 10
+                        padding_y: 5
+                        size_hint: (1, .15)
+                        size: self.texture_size
+
+                    # Pinned Tickets items
+                    ScrollView:
+                        size_hint: (1, .3)
+                        # size: (self.parent.width, self.parent.height)
                         StackLayout:
-                            #size_hint: 1, None
-                            id: tickets
+                            size_hint_x: 1
+                            size_hint_y: None
+                            size_hint: 1, None
+                            width: self.parent.width
+                            height: self.minimum_height
+                            id: pins
                             spacing: 10
 
-                        # Spacer to avoid the bottom
-                        BoxLayout:
-                            size_hint: (1, .2)
+                    # Spacer to avoid the bottom
+                    BoxLayout:
+                        size_hint: (1, .2)
 
 
                 # Right side layout
@@ -127,9 +156,9 @@ WindowManager:
                     id: right_layout
                     orientation: 'vertical'
                     padding: 10
-                    size_hint: (0.33, 1)
+                    size_hint: (0.1, 1)
                     
-		    # Anchors settings button to top right
+		            # Anchors settings button to top right
                     AnchorLayout:
                         anchor_x: 'right'
                         anchor_y: 'top'
@@ -144,27 +173,10 @@ WindowManager:
                             padding_x: 10
                             padding_y: 5
                             on_press: app.open_settings()
-                            size_hint: (.1, 1)
+                            size_hint: (.1, .1)
                             #size: self.texture_size
 		    
-		    # Pinned Items section
-                    BoxLayout:
-                        orientation: 'vertical'
-	                    Label:
-	                        id: pins_header
-	                        text: 'Pinned Items'
-	                        #height: 50
-	                        font_size: 50
-	                        markup: True
-	                        padding_x: 10
-	                        padding_y: 5
-	                        size_hint: (1, .2)
-	                        size: self.texture_size 
 
-	                    # Pinned Tickets items
-	                    StackLayout:
-	                        id: pins
-	                        spacing: 10
 
 		            # Spacer to avoid the bottom
 		            Label:

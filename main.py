@@ -7,6 +7,7 @@ from kivy.app import App
 
 from kivy.animation import Animation
 from kivy.core.text import LabelBase
+from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.image import Image
 from kivy.uix.button import Button
 from kivy.uix.popup import Popup
@@ -16,7 +17,7 @@ from kivy.uix.screenmanager import Screen, ScreenManager
 from kivy.core.audio import SoundLoader
 from kivy.logger import Logger
 
-from views.sheets import get_tickets, get_stats
+from views.sheets import get_tickets, get_stats, close_ticket, pin_ticket
 
 LabelBase.register(
     name="Roboto",
@@ -160,7 +161,7 @@ class TicketronApp(App):
     def add_ticket(self, ticket_data):
         # ticket_id, ticket_title, ticket_author, ticket_status = ticket_data
         ticket = dict(ticket_data)
-        show_ticket_callback = lambda t:self.show_ticket_info(title=ticket['Title'], messages=f"{ticket['Messages']}")
+        show_ticket_callback = lambda t:self.show_ticket_info(ticket_data)
         if ticket["Status"] == TicketStatus.NEW:
             ticket_widget = NewTicketItem(
                 text=f"[b]{ticket['Title']}[/b][size=30sp]\n{ticket['Requested By']}[/size]",
@@ -223,13 +224,27 @@ class TicketronApp(App):
         except KeyError:
             pass
 
+    def show_ticket_info(self, ticket_data):
+        ticket = dict(ticket_data)
+        view = Popup(size_hint=(0.8, 0.8), title=ticket['Title'])
+        layout = BoxLayout(orientation='vertical')
+        scrollview = InfoScroll(size_hint=(1, 0.8))
+        scrollview.add_widget(InfoLabel(text=f"{ticket['Messages']}"))
+        layout.add_widget(scrollview)
 
-    def show_ticket_info(self, title, messages):
+        def button_callback_close(t):
+            close_ticket(ticket['ID'])
+            self.remove_ticket(ticket_data)
+            view.dismiss()
 
-        view = Popup(size_hint=(0.8, 0.8), title=title)
-        scrollview = InfoScroll()
-        view.add_widget(scrollview)
-        scrollview.add_widget(InfoLabel(text=messages))
+        def button_callback_pin(t):
+            pin_ticket(ticket['ID'])
+            self.remove_ticket(ticket_data)
+            view.dismiss()
+
+        layout.add_widget(Button(text='Close', size_hint=(1, 0.2), on_press=button_callback_close))
+        layout.add_widget(Button(text='Pin', size_hint=(1, 0.2), on_press=button_callback_pin))
+        view.add_widget(layout)
         view.open()
 
 
@@ -256,7 +271,7 @@ class TicketronApp(App):
             self.root.ids.pins_header.text = (
                 f"[b]{num_pins}[/b] Pinned Item{'s' if num_pins != 1 else ''}"
             )
-            await asyncio.sleep(30)
+            await asyncio.sleep(15)
 
 
 

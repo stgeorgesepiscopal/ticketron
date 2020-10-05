@@ -61,6 +61,33 @@ async def get_stats():
         'closed_total': closed_total_cell.value,
     }
 
+async def do_close_ticket(id):
+    gspread = await gspread_manager.authorize()
+    ss = await gspread.open_by_key("1-XlENZVrZ9oYx6UqIUi5V3eq0l3RPDCfeXIyB6TC2NA")
+    tickets_sheet = await ss.get_worksheet(0)
+    id_cell = await tickets_sheet.find(id)
+    await tickets_sheet.update_cell(id_cell.row, 9, TicketStatus.CLOSED)
+    return id
+
+
+async def do_pin_ticket(id):
+    gspread = await gspread_manager.authorize()
+    ss = await gspread.open_by_key("1-XlENZVrZ9oYx6UqIUi5V3eq0l3RPDCfeXIyB6TC2NA")
+    tickets_sheet = await ss.get_worksheet(0)
+    id_cell = await tickets_sheet.find(id)
+    await tickets_sheet.update_cell(id_cell.row, 9, TicketStatus.PINNED)
+    return id
+
+
+def close_ticket(id):
+    loop = asyncio.get_event_loop()
+    loop.create_task(do_close_ticket(id))
+
+
+def pin_ticket(id):
+    loop = asyncio.get_event_loop()
+    loop.create_task(do_pin_ticket(id))
+
 '''
     while True:
         try:
