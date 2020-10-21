@@ -242,8 +242,8 @@ class TicketronApp(App):
             self.remove_ticket(ticket_data)
             view.dismiss()
 
-        layout.add_widget(Button(text='Close', size_hint=(1, 0.2), on_press=button_callback_close))
-        layout.add_widget(Button(text='Pin', size_hint=(1, 0.2), on_press=button_callback_pin))
+        layout.add_widget(Button(text='Close Ticket', size_hint=(1, 0.2), on_press=button_callback_close))
+        layout.add_widget(Button(text='Pin Ticket', size_hint=(1, 0.2), on_press=button_callback_pin))
         view.add_widget(layout)
         view.open()
 
