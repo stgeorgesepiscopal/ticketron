@@ -1,3 +1,13 @@
+# ticketron.kv - Kivy Layout File for Ticketron by Your Friendly Neighborhood Tech Team
+
+# Put this on an object to draw a rectangle around it (for sorting out positioning)
+# canvas.before:
+#    Color:
+#        rgba: .5, .5, .5, 1
+#    Line:
+#        width: 2
+#        rectangle: self.x, self.y, self.width, self.height
+
 # Base TicketItem styling and scaling
 <-TicketItem>:
     text_size: [None, None]
@@ -65,6 +75,25 @@
     font_size: "24sp"
     halign: 'left'
 
+<StatLabel>:
+    text: '0'
+    font_name: 'Roboto'
+    markup: True
+    font_size: 60
+    halign: 'left'
+    valign: 'middle'
+    padding_x: 10
+    pos_hint: {'left': 1}
+    size_hint: (.9, 1)
+    text_size: self.size
+
+<StatIconLabel>:
+    font_name: 'FontAwesome'
+    text: ''
+    font_size: 30
+    size_hint: (.1, 1)
+    halign: 'right'
+
 
 
 # Wrap in WindowManager so new screens can be added later if desired
@@ -88,12 +117,12 @@ WindowManager:
             # Big box around content area
             BoxLayout:
                 orientation: 'horizontal'
-                size_hint: 0.9, 1
+                size_hint: 0.99, 1
 
                 # Left side layout
                 StackLayout:
                     id: left_layout
-                    padding: [95,0,0,0]
+                    # padding: [95,0,0,0]
                     # orientation: 'vertical'
                     orientation: 'tb-lr'
                     size_hint: (1, 1)
@@ -156,30 +185,7 @@ WindowManager:
                         size_hint: (1, .2)
 
 
-                # Right side layout
-                BoxLayout:
-                    id: right_layout
-                    orientation: 'vertical'
-                    padding: 10
-                    size_hint: (0, 1)
-                    
-		            # Anchors settings button to top right
-                    AnchorLayout:
-                        anchor_x: 'right'
-                        anchor_y: 'top'
-                        size_hint: (1, .05) 
 
-                        Button:
-                            id: options_button
-                            markup: True
-                            font_name: 'FontAwesome'
-                            font_size: 30
-                            text: ''
-                            padding_x: 10
-                            padding_y: 5
-                            on_press: app.open_settings()
-                            size_hint: (.1, .1)
-                            #size: self.texture_size
 		    
 
 
@@ -190,6 +196,35 @@ WindowManager:
         # Spacer to avoid the bottom
         Label:
             size_hint: (1, .2)
+
+        # Right side layout
+        AnchorLayout:
+            anchor_y: 'top'
+            anchor_x: 'right'
+            id: right_layout
+            orientation: 'vertical'
+            padding: 10
+            size_hint: (1, 1)
+            index: 0
+
+            # Anchors settings button to top right
+            AnchorLayout:
+                anchor_x: 'right'
+                anchor_y: 'top'
+                size_hint: (.05, .05)
+
+                Button:
+                    id: options_button
+                    markup: True
+                    font_name: 'FontAwesome'
+                    font_size: 30
+                    text: ''
+                    padding_x: 10
+                    padding_y: 5
+                    on_press: app.open_settings()
+                    size_hint: (1, 1)
+                    background_color: 0, 0, 0, 0.6
+                    #size: self.texture_size
 
 
         # Time / Date section - anchored
@@ -206,7 +241,7 @@ WindowManager:
                 # Time on left
                 BoxLayout:
                     orientation: 'horizontal'
-                    size_hint: (0.5, None)
+                    size_hint: (0.3, None)
 
                     # Time 00:00
                     Label:
@@ -249,7 +284,38 @@ WindowManager:
 	                        size_hint: None, 1
 	                        size: (self.texture_size[0], root.ids.time.height / 2)
 
-		                                
+                # Stats box
+		        BoxLayout:
+                    orientation: 'vertical'
+                    size_hint: (0.2, None)
+
+                    # Completed Tickets
+                    BoxLayout:
+                        orientation: 'horizontal'
+                        size_hint: (1, .4)
+
+                        # Checked box character
+                        StatIconLabel:
+                            text: ''
+
+                        StatLabel:
+                            id: closed_tickets
+
+
+                    # Ticket Times
+                    BoxLayout:
+                        orientation: 'horizontal'
+                        size_hint: (1, .4)
+
+                        # Checked box character
+                        StatIconLabel:
+                            text: ''
+
+                        StatLabel:
+                            id: average_ticket_time
+
+
+
                 # Date
                 Label:
                     id: calendar
@@ -258,5 +324,5 @@ WindowManager:
                     markup: True
                     font_size: 90
                     size: self.texture_size
-                    size_hint: (None, None)
+                    size_hint: (.5, None)
 

@@ -38,7 +38,7 @@ async def get_tickets():
         ]:
             # ticket_messages = row[5].replace("\r", " ")
             row["Title"] = re.sub(
-                r"re: |fwd: |\[EXTERNAL\] ", "", row["Title"], flags=re.I
+                r"re: |fwd: |\[EXTERNAL\] |\[ᴇxᴛᴇʀɴᴀʟ\] ", "", row["Title"], flags=re.I
             )
             row["Messages"] = re.sub(
                 r"\r", "\n", row["Messages"], flags=re.I
@@ -53,13 +53,15 @@ async def get_stats():
 
     ss = await gspread.open_by_key("1-XlENZVrZ9oYx6UqIUi5V3eq0l3RPDCfeXIyB6TC2NA")
 
-    summary_sheet = await ss.get_worksheet(1)
+    summary_sheet = await ss.get_worksheet(2)
 
-    closed_total_cell = await summary_sheet.acell("B7")
+    row = await summary_sheet.get_all_records()
+    summary_data = row[0]
 
-    return {
-        'closed_total': closed_total_cell.value,
-    }
+    # closed_total_cell = await summary_sheet.acell("B7")
+    # average_ticket_time = await summary_sheet.acell("C8")
+
+    return summary_data
 
 async def do_close_ticket(id):
     gspread = await gspread_manager.authorize()

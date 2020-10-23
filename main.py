@@ -66,6 +66,14 @@ class InfoLabel(Label):
     pass
 
 
+class StatLabel(Label):
+    pass
+
+
+class StatIconLabel(Label):
+    pass
+
+
 class WindowManager(ScreenManager):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -265,9 +273,11 @@ class TicketronApp(App):
             num_pins = len([t for t in self.all_tickets if dict(t)["Status"] == TicketStatus.PINNED])
 
             stats = await get_stats()
-            closed_total = stats["closed_total"]
 
-            self.root.ids.ticket_header.text = f"[b]{num_open_tickets}[/b] Open Ticket{'s' if num_open_tickets != 1 else ''} [sup][font=FontAwesome][/font] [b]{closed_total}[/b][/sup]"
+            self.root.ids.ticket_header.text = f"[b]{num_open_tickets}[/b] Open Ticket{'s' if num_open_tickets != 1 else ''}"
+            self.root.ids.closed_tickets.text = str(stats['closed_total'])
+            self.root.ids.average_ticket_time.text = str(stats['average_same_day'])
+
             self.root.ids.pins_header.text = (
                 f"[b]{num_pins}[/b] Pinned Item{'s' if num_pins != 1 else ''}"
             )
